@@ -1,24 +1,25 @@
 pipeline {
-  agent any
-
-  stages {
-
-    stage('Build Artifact - Maven') {
-      steps {
-        sh "mvn clean package -DskipTests=true"
-        archive 'target/*.jar'
-      }
-    }
-  
-    stage('Vulnerability Scan') {
-      steps {
-        sh "mvn dependency-check:check"
-      }
-      post {
-        always {
-          dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
+    agent {
+        docker {
+            image 'maven:3.8.7-eclipse-temurin-11'
+            args '-v /root/.m2:/root/.m2'
         }
-      }
     }
- }
+    stages {
+        stage('Build') {
+            steps {
+                sh 'mvn -B -DskipTests clean package'
+            }
+        }
+        stage('Test') { 
+            steps {
+                sh 'mvn test' 
+            }
+            post {
+                always {
+                    junit 'target/surefire-reports/*.xml' 
+                }
+            }
+        }
+    }
 }
